@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Text Summarizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS Variables for Theming */
+        :root {
+            /* Light Mode Colors */
+            --bg-gradient-start: #fff0f5; /* pink-50 */
+            --bg-gradient-end: #e0f2fe; /* blue-50 */
+            --container-bg: #ffffff;
+            --text-color-primary: #1f2937; /* gray-800 */
+            --text-color-secondary: #4b5563; /* gray-600 */
+            --gradient-text-start: #f472b6; /* pink-400 */
+            --gradient-text-end: #a78bfa; /* purple-400 */
+            --input-border: #e5e7eb; /* gray-200 */
+            --input-focus-border: #a78bfa; /* purple-300 */
+            --input-focus-shadow: rgba(167, 139, 250, 0.3);
+            --button-gradient-start: #fbcfe8; /* pink-300 */
+            --button-gradient-end: #d8b4fe; /* purple-300 */
+            --summary-bg: #f9fafb; /* gray-50 */
+            --copy-button-bg: #e5e7eb; /* gray-100 */
+            --copy-button-hover: #d1d5db; /* gray-200 */
+            --error-bg: #fef2f2; /* red-50 */
+            --error-border: #fca5a5; /* red-200 */
+            --error-text: #ef4444; /* red-500 */
+            --copy-success-text: #22c55e; /* green-500 */
+            --scrollbar-track: #f0f4f8;
+            --scrollbar-thumb: #d1d5db;
+            --scrollbar-thumb-hover: #b0b5bd;
+            --chat-user-bg: #e0e7ff; /* blue-100 */
+            --chat-hope-bg: #f0f9ff; /* blue-50 */
+            --toggle-icon-color: #fcd34d; /* yellow-400 for sun */
+            --toggle-bg: #ffffff;
+            --toggle-border: #e2e8f0;
+        }
+
+        body.dark-mode {
+            /* Dark Mode Colors */
+            --bg-gradient-start: #1a202c; /* Dark gray */
+            --bg-gradient-end: #2d3748; /* Slightly lighter dark gray */
+            --container-bg: #2d3748; /* Darker container */
+            --text-color-primary: #e2e8f0; /* Light gray */
+            --text-color-secondary: #a0aec0; /* Muted light gray */
+            --gradient-text-start: #c084fc; /* Purple-400 */
+            --gradient-text-end: #f472b6; /* Pink-400 */
+            --input-border: #4a5568; /* Darker gray */
+            --input-focus-border: #8b5cf6; /* Darker purple */
+            --input-focus-shadow: rgba(139, 92, 246, 0.3);
+            --button-gradient-start: #8b5cf6; /* Darker purple */
+            --button-gradient-end: #ec4899; /* Darker pink */
+            --summary-bg: #1a202c; /* Darker summary background */
+            --copy-button-bg: #4a5568; /* Darker gray */
+            --copy-button-hover: #64748b; /* Even darker gray */
+            --error-bg: #450a0a; /* Dark red */
+            --error-border: #7f1d1d; /* Darker red */
+            --error-text: #f87171; /* Lighter red */
+            --copy-success-text: #4ade80; /* Lighter green */
+            --scrollbar-track: #2d3748;
+            --scrollbar-thumb: #64748b;
+            --scrollbar-thumb-hover: #94a3b8;
+            --chat-user-bg: #4c51bf; /* Darker blue for user */
+            --chat-hope-bg: #1a202c; /* Darker blue for Hope */
+            --toggle-icon-color: #60a5fa; /* blue-400 for moon */
+            --toggle-bg: #4a5568;
+            --toggle-border: #4a5568;
+        }
+
+        /* General Body Styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom right, var(--bg-gradient-start), var(--bg-gradient-end));
+            color: var(--text-color-primary);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            transition: background 0.5s ease-in-out, color 0.5s ease-in-out; /* Smooth theme transition */
+        }
+
+        /* Container for main app to keep it centered and responsive */
+        .container {
+            max-width: 4xl;
+            width: 100%;
+            background-color: var(--container-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--input-border); /* Consistent border */
+            margin-bottom: 2rem;
+            transition: background-color 0.5s ease-in-out, border-color 0.5s ease-in-out, box-shadow 0.5s ease-in-out;
+        }
+
+        /* Apply container styles to chatbot section as well */
+        .max-w-4xl.w-full.mt-8.bg-white {
+            background-color: var(--container-bg);
+            border: 1px solid var(--input-border);
+            transition: background-color 0.5s ease-in-out, border-color 0.5s ease-in-out, box-shadow 0.5s ease-in-out;
+        }
+
+        /* Text colors using variables */
+        h1 .bg-clip-text {
+            background-image: linear-gradient(to right, var(--gradient-text-start), var(--gradient-text-end));
+        }
+        h1, h2, strong { color: var(--text-color-primary); }
+        p, label, .text-gray-600, .text-gray-700, .text-gray-500 { color: var(--text-color-secondary); }
+
+        /* Input and Textarea Styling */
+        textarea::-webkit-scrollbar { width: 8px; }
+        textarea::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 10px; }
+        textarea::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; }
+        textarea::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+        .input-textarea {
+            border-color: var(--input-border);
+            color: var(--text-color-primary);
+            background-color: var(--container-bg); /* Ensure input background matches container */
+            transition: border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out, background-color 0.5s ease-in-out, color 0.5s ease-in-out;
+        }
+        .input-textarea::placeholder { color: var(--text-color-secondary); }
+        .input-textarea:focus {
+            border-color: var(--input-focus-border);
+            box-shadow: 0 0 0 3px var(--input-focus-shadow);
+        }
+
+        /* Buttons Styling */
+        .summarize-button, #sendChatButton {
+            background-image: linear-gradient(to right, var(--button-gradient-start), var(--button-gradient-end));
+            transition: all 0.3s ease-in-out;
+        }
+        .summarize-button:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15); }
+        .summarize-button:active { transform: translateY(1px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); filter: brightness(0.9); }
+
+        #copyButton {
+            background-color: var(--copy-button-bg);
+            color: var(--text-color-secondary);
+            transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+        }
+        #copyButton:hover { background-color: var(--copy-button-hover); }
+
+        /* Output and Message Styling */
+        #summaryOutputContainer {
+            background-color: var(--summary-bg);
+            border-color: var(--input-border);
+            transition: background-color 0.5s ease-in-out, border-color 0.5s ease-in-out;
+        }
+        #copyMessage { color: var(--copy-success-text); }
+        #errorMessage {
+            background-color: var(--error-bg);
+            border-color: var(--error-border);
+            color: var(--error-text);
+            transition: background-color 0.5s ease-in-out, border-color 0.5s ease-in-out, color 0.5s ease-in-out;
+        }
+
+        /* Chat Specific Styles */
+        .chat-message {
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            max-width: 80%;
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: background-color 0.5s ease-in-out, color 0.5s ease-in-out;
+        }
+        .chat-message.user { background-color: var(--chat-user-bg); align-self: flex-end; margin-left: auto; }
+        .chat-message.hope { background-color: var(--chat-hope-bg); align-self: flex-start; margin-right: auto; }
+        #chatWindow {
+            background-color: var(--summary-bg); /* Use summary-bg for chat window */
+            border-color: var(--input-border);
+            transition: background-color 0.5s ease-in-out, border-color 0.5s ease-in-out;
+        }
+        #chatWindow::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+        #chatWindow::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); }
+        #chatWindow::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+        /* Keyframes for loading spinner */
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+
+        /* Fade in and slight scale-up animation for results */
+        @keyframes fadeInScale { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .fade-in-scale { animation: fadeInScale 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+
+        /* Message fade in/out animation */
+        @keyframes messageFadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes messageFadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-5px); } }
+        .message-fade-in { animation: messageFadeIn 0.3s ease-out forwards; }
+        .message-fade-out { animation: messageFadeOut 0.3s ease-in forwards; }
+
+        /* Theme Toggle Button Styling */
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: var(--toggle-bg);
+            border: 1px solid var(--toggle-border);
+            border-radius: 9999px; /* Fully rounded */
+            padding: 0.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease-in-out, background-color 0.5s ease-in-out, border-color 0.5s ease-in-out;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 10; /* Ensure it's on top */
+        }
+
+        .theme-toggle:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+
+        .theme-toggle svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--toggle-icon-color); /* Use variable for icon color */
+            transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out, fill 0.5s ease-in-out;
+        }
+
+        /* Icon animations */
+        .theme-toggle .sun-icon,
+        .theme-toggle .moon-icon {
+            position: absolute; /* Allows them to overlay and transition */
+            transform-origin: center center;
+        }
+
+        /* Initial state for moon icon in light mode (hidden and rotated) */
+        .theme-toggle .moon-icon {
+            transform: rotate(-180deg);
+            opacity: 0;
+        }
+
+        /* Dark mode state for icons */
+        body.dark-mode .theme-toggle .sun-icon {
+            transform: rotate(180deg);
+            opacity: 0;
+        }
+
+        body.dark-mode .theme-toggle .moon-icon {
+            transform: rotate(0deg);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="themeToggle" class="theme-toggle">
+        <svg class="sun-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 17.5C14.4853 17.5 16.5 15.4853 16.5 13C16.5 10.5147 14.4853 8.5 12 8.5C9.51472 8.5 7.5 10.5147 7.5 13C7.5 15.4853 9.51472 17.5 12 17.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 2.5V3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 22.5V21.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4.22 4.22L4.929 4.929" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M19.071 19.071L19.78 19.78" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2.5 13H3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M22.5 13H21.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4.22 21.78L4.929 21.071" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M19.071 4.929L19.78 4.22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg class="moon-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21.66 12.0001C21.66 12.6001 21.63 13.1901 21.57 13.7801C20.61 16.9201 17.65 19.1601 14.18 19.1601C9.97 19.1601 6.58 15.7701 6.58 11.5601C6.58 8.0901 8.82 5.1301 11.96 4.1701C12.55 4.1101 13.14 4.0801 13.74 4.0801C13.74 4.0801 13.74 4.0801 13.74 4.0801C17.95 4.0801 21.34 7.4701 21.34 11.5601C21.34 11.6901 21.34 11.8201 21.34 11.9501C21.44 11.9701 21.55 11.9901 21.66 12.0001Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </div>
+
+    <div class="container">
+        <h1 class="text-4xl font-extrabold text-center mb-4 tracking-tight">
+            <span class="bg-clip-text text-transparent">AI Text Summarizer</span>
+        </h1>
+
+        <p class="text-center mb-8 max-w-2xl mx-auto">
+            This tool uses advanced AI to condense long articles, documents, or any text into a brief, easy-to-read summary, highlighting the most important information.
+        </p>
+
+        <div class="mb-6">
+            <label for="inputText" class="block text-lg font-semibold mb-2">Paste your text here:</label>
+            <textarea
+                id="inputText"
+                class="input-textarea w-full p-4 border rounded-xl focus:outline-none focus:ring-0 transition duration-300 ease-in-out resize-y min-h-[150px] shadow-sm"
+                placeholder="Enter text to summarize..."
+                rows="8"
+            ></textarea>
+            <p id="charCount" class="text-sm mt-2 text-right">0 characters</p>
+        </div>
+
+        <div class="flex justify-center mb-8">
+            <button
+                id="summarizeButton"
+                class="summarize-button text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg flex items-center justify-center"
+            >
+                <span id="buttonText">Summarize Text</span>
+                <svg id="loadingSpinner" class="spinner h-6 w-6 text-white ml-3 hidden" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </button>
+        </div>
+
+        <div id="summaryOutputContainer" class="hidden mt-8 p-6 rounded-2xl border shadow-md">
+            <h2 class="text-2xl font-bold mb-4 flex items-center">
+                Summary
+                <button id="copyButton" class="ml-auto font-semibold py-2 px-4 rounded-lg text-sm transition duration-200 ease-in-out flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2m-4-5l4 4m0 0l-4 4m4-4H9"></path></svg>
+                    Copy
+                </button>
+            </h2>
+            <p id="summaryText" class="leading-relaxed whitespace-pre-wrap"></p>
+            <div id="copyMessage" class="text-sm mt-3 text-right hidden">Copied to clipboard!</div>
+        </div>
+
+        <div id="errorMessage" class="hidden mt-4 px-4 py-3 rounded-xl relative" role="alert">
+            <strong class="font-bold">Error!</strong>
+            <span class="block sm:inline" id="errorText"></span>
+        </div>
+    </div>
+
+    <div class="max-w-4xl w-full mt-8 bg-white p-8 rounded-2xl shadow-xl">
+        <h2 class="text-2xl font-bold mb-4 text-center">Chat with Hope</h2>
+        <div id="chatWindow" class="h-80 overflow-y-auto p-4 border rounded-xl mb-4 flex flex-col space-y-3">
+            <div class="chat-message hope">Hello! I'm Hope, your AI assistant. How can I help you today?</div>
+        </div>
+        <div class="flex items-center">
+            <input
+                type="text"
+                id="chatInput"
+                class="w-full p-3 border rounded-xl focus:outline-none focus:ring-0 transition duration-300 ease-in-out shadow-sm mr-2"
+                placeholder="Type your message to Hope..."
+            />
+            <button
+                id="sendChatButton"
+                class="text-white font-bold py-3 px-6 rounded-full text-md shadow-lg transition-all duration-300 ease-in-out flex items-center justify-center"
+            >
+                Send
+                <svg id="chatLoadingSpinner" class="spinner h-5 w-5 text-white ml-2 hidden" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase imports (though not directly used for this simple summarizer, included for consistency with Canvas environment)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables for Firebase configuration, provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app, db, auth;
+
+        // Initialize Firebase and authenticate
+        async function initializeFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length > 0) {
+                    app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                        console.log("Signed in with custom token.");
+                    } else {
+                        await signInAnonymously(auth);
+                        console.log("Signed in anonymously.");
+                    }
+                } else {
+                    console.warn("Firebase config not provided. Running without Firebase features.");
+                }
+            } catch (error) {
+                console.error("Error initializing Firebase or signing in:", error);
+                displayMessage('Error initializing the application. Please try again.', 'error');
+            }
+        }
+
+        // Call Firebase initialization on window load
+        window.onload = initializeFirebase;
+
+        // Get DOM elements for summarizer
+        const inputText = document.getElementById('inputText');
+        const summarizeButton = document.getElementById('summarizeButton');
+        const summaryOutputContainer = document.getElementById('summaryOutputContainer');
+        const summaryText = document.getElementById('summaryText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const buttonText = document.getElementById('buttonText');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const charCount = document.getElementById('charCount');
+        const copyButton = document.getElementById('copyButton');
+        const copyMessage = document.getElementById('copyMessage');
+
+        // Get DOM elements for chatbot
+        const chatWindow = document.getElementById('chatWindow');
+        const chatInput = document.getElementById('chatInput');
+        const sendChatButton = document.getElementById('sendChatButton');
+        const chatLoadingSpinner = document.getElementById('chatLoadingSpinner');
+
+        // Get DOM element for theme toggle
+        const themeToggle = document.getElementById('themeToggle');
+
+        // Chatbot history for conversational context
+        let chatHistory = [{ role: "model", parts: [{ text: "Hello! I'm Hope, your AI assistant. How can I help you today?" }] }];
+
+        // Function to display messages (error/success)
+        function displayMessage(message, type = 'info') {
+            // Hide previous messages with fade-out effect if visible
+            if (!errorMessage.classList.contains('hidden')) {
+                errorMessage.classList.add('message-fade-out');
+                errorMessage.addEventListener('animationend', () => {
+                    errorMessage.classList.add('hidden');
+                    errorMessage.classList.remove('message-fade-out');
+                }, { once: true });
+            }
+            if (!copyMessage.classList.contains('hidden')) {
+                copyMessage.classList.add('message-fade-out');
+                copyMessage.addEventListener('animationend', () => {
+                    copyMessage.classList.add('hidden');
+                    copyMessage.classList.remove('message-fade-out');
+                }, { once: true });
+            }
+
+
+            // Display new message with fade-in effect
+            setTimeout(() => { // Small delay to allow fade-out to start
+                if (type === 'error') {
+                    errorText.textContent = message;
+                    errorMessage.classList.remove('hidden');
+                    errorMessage.classList.add('message-fade-in');
+                } else if (type === 'copy-success') {
+                    copyMessage.textContent = message;
+                    copyMessage.classList.remove('hidden');
+                    copyMessage.classList.add('message-fade-in');
+                    setTimeout(() => {
+                        copyMessage.classList.add('message-fade-out');
+                        copyMessage.addEventListener('animationend', () => {
+                            copyMessage.classList.add('hidden');
+                            copyMessage.classList.remove('message-fade-out');
+                        }, { once: true });
+                    }, 2000); // Hide after 2 seconds
+                }
+            }, 100); // Adjust delay if needed
+        }
+
+        // Function to add chat messages to the chat window
+        function addChatMessage(message, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('chat-message', sender, 'message-fade-in');
+            messageDiv.textContent = message;
+            chatWindow.appendChild(messageDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight; // Scroll to bottom
+        }
+
+        // Update character count for summarizer input
+        inputText.addEventListener('input', () => {
+            const textLength = inputText.value.length;
+            charCount.textContent = `${textLength} characters`;
+            // Clear previous summary/errors when text changes with fade-out
+            if (!summaryOutputContainer.classList.contains('hidden')) {
+                summaryOutputContainer.classList.add('message-fade-out'); // Using message-fade-out for quick hide
+                summaryOutputContainer.addEventListener('animationend', () => {
+                    summaryOutputContainer.classList.add('hidden');
+                    summaryOutputContainer.classList.remove('message-fade-out');
+                    summaryText.textContent = '';
+                }, { once: true });
+            } else {
+                summaryText.textContent = '';
+            }
+            displayMessage('', 'clear'); // Clear any active messages
+        });
+
+        // Summarize button click handler
+        summarizeButton.addEventListener('click', async () => {
+            const textToSummarize = inputText.value.trim();
+
+            // Input validation
+            if (textToSummarize.length < 50) {
+                displayMessage('Please enter at least 50 characters for a meaningful summary.', 'error');
+                return;
+            }
+
+            // Hide previous results and error messages with animation
+            if (!summaryOutputContainer.classList.contains('hidden')) {
+                summaryOutputContainer.classList.add('message-fade-out');
+                summaryOutputContainer.addEventListener('animationend', () => {
+                    summaryOutputContainer.classList.add('hidden');
+                    summaryOutputContainer.classList.remove('message-fade-out');
+                    summaryText.textContent = '';
+                }, { once: true });
+            } else {
+                summaryText.textContent = '';
+            }
+            displayMessage('', 'clear'); // Clear any active messages
+
+            // Show loading state
+            summarizeButton.disabled = true;
+            buttonText.textContent = 'Summarizing...';
+            loadingSpinner.classList.remove('hidden');
+            summarizeButton.classList.add('opacity-70', 'cursor-not-allowed');
+
+            try {
+                // Construct the prompt for the LLM
+                const prompt = `Please summarize the following text concisely and accurately. Focus on the main points and key information:\n\n${textToSummarize}`;
+
+                // Prepare the payload for the Gemini API call
+                let summarizerChatHistory = [{ role: "user", parts: [{ text: prompt }] }]; // Use a local history for summarizer
+                const payload = { contents: summarizerChatHistory };
+
+                // API key (empty string for Canvas environment to auto-provide)
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                // Make the fetch call to the Gemini API
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+                }
+
+                const result = await response.json();
+
+                // Check for valid response structure
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const summarizedText = result.candidates[0].content.parts[0].text;
+                    summaryText.textContent = summarizedText;
+                    summaryOutputContainer.classList.remove('hidden');
+                    summaryOutputContainer.classList.add('fade-in-scale'); // Apply fade-in-scale animation
+                } else {
+                    displayMessage('Failed to get a summary. The AI might not have generated content.', 'error');
+                }
+
+            } catch (error) {
+                console.error("Error summarizing text:", error);
+                displayMessage(`An unexpected error occurred: ${error.message}. Please try again.`, 'error');
+            } finally {
+                // Reset loading state
+                summarizeButton.disabled = false;
+                buttonText.textContent = 'Summarize Text';
+                loadingSpinner.classList.add('hidden');
+                summarizeButton.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
+        });
+
+        // Copy to clipboard functionality
+        copyButton.addEventListener('click', () => {
+            const textToCopy = summaryText.textContent;
+            if (textToCopy) {
+                // Using document.execCommand('copy') for better compatibility in iframes
+                const textarea = document.createElement('textarea');
+                textarea.value = textToCopy;
+                textarea.style.position = 'fixed'; // Avoid scrolling to bottom
+                textarea.style.left = '-9999px'; // Hide from view
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        displayMessage('Copied to clipboard!', 'copy-success');
+                    } else {
+                        displayMessage('Failed to copy text. Please try again manually.', 'error');
+                    }
+                } catch (err) {
+                    console.error('Failed to copy text:', err);
+                    displayMessage('Failed to copy text. Your browser might not support this feature.', 'error');
+                } finally {
+                    document.body.removeChild(textarea);
+                }
+            } else {
+                displayMessage('No summary to copy.', 'error');
+            }
+        });
+
+        // Chatbot send message handler
+        async function sendChatMessage() {
+            const userMessage = chatInput.value.trim();
+            if (userMessage === '') return;
+
+            addChatMessage(userMessage, 'user');
+            chatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+            chatInput.value = ''; // Clear input field
+
+            // Show loading state
+            sendChatButton.disabled = true;
+            sendChatButton.textContent = ''; // Clear text
+            chatLoadingSpinner.classList.remove('hidden');
+            sendChatButton.classList.add('opacity-70', 'cursor-not-allowed');
+
+            try {
+                const payload = { contents: chatHistory };
+                const apiKey = ""; // Canvas environment provides this
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Chat API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const hopeResponse = result.candidates[0].content.parts[0].text;
+                    addChatMessage(hopeResponse, 'hope');
+                    chatHistory.push({ role: "model", parts: [{ text: hopeResponse }] });
+                } else {
+                    addChatMessage("Sorry, I couldn't generate a response. Please try again.", 'hope');
+                }
+
+            } catch (error) {
+                console.error("Error chatting with Hope:", error);
+                addChatMessage(`Oops! Something went wrong: ${error.message}. Please try again.`, 'hope');
+            } finally {
+                // Reset loading state
+                sendChatButton.disabled = false;
+                sendChatButton.textContent = 'Send';
+                chatLoadingSpinner.classList.add('hidden');
+                sendChatButton.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
+        }
+
+        // Event listeners for chatbot
+        sendChatButton.addEventListener('click', sendChatMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+
+        // Theme Toggle Logic
+        function applyTheme(theme) {
+            document.body.classList.toggle('dark-mode', theme === 'dark');
+            localStorage.setItem('theme', theme);
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = localStorage.getItem('theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+        });
+
+        // Apply saved theme on load
+        const savedTheme = localStorage.getItem('theme') || 'light'; // Default to light
+        applyTheme(savedTheme);
+    </script>
+</body>
+</html>
